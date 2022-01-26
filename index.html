@@ -27,13 +27,27 @@ var dx = [2, 4,2,5,7,5,9,3,6,2];
 var dy = [-2, -5, -3, -4, -5, -6, -3, -2, -1, -7];
 var color = ['#00FFFF', '#006400', '#4B0082', '#C71585', '#E9967A',
                 '#7B68EE', '#191970','#FF0000', '#00FF7F', '#FFFF00'];
-
+var totalBalls = [], 
+ymouse = 0,
+xmouse = 0,
+Y = [],
+X = [],
+xx = [],
+yy = [];
+ flagMouse = 0;      
 //End variables declaration//
 
-function drawBall(num) {
+function mouse(e){
+    ymouse = e.clientY;
+    xmouse = e.clientX;
+    flagMouse = 1;   
+}
+
+function drawBall(num) { 
+    ////
     ctx.beginPath();
-    ctx.arc(x[num], y[num], ballRadius, 0, Math.PI*2, false);
-    ctx.fillStyle = color[num];
+    ctx.arc(totalBalls[num].x, totalBalls[num].y, totalBalls[num].ballRadius, 0, Math.PI*2, false);
+    ctx.fillStyle = totalBalls[num].color;
     ctx.fill();
     ctx.closePath();
 }
@@ -41,28 +55,64 @@ function drawBall(num) {
 ////
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-   
-    for (let i = 0; i < 10; i++) {
+
+    if (flagMouse == 1){       
+        // first drags second and we all follow the mouse
+        yy[0] = Y[0] += (ymouse - Y[0]) * 0.3;
+        xx[0] = X[0] += (xmouse - 5 - X[0]) * 0.3;
+        for (let i = 9; i > 0; --i) {
+            yy[i] = Y[i] += (yy[i - 1] - Y[i]) * 0.3;
+            xx[i] = X[i] += (xx[i - 1] - X[i]) * 0.3;
+
+            ////
+            totalBalls[i].x = xx[i];
+            totalBalls[i].y = yy[i];
+            drawBall(i);
+        }        
+    }else {
+        for (let i = 0; i < 10; i++) {
     
-        //draw ball on canvase//
-        drawBall(i);
-        
-        //set new position//
-        if(x[i] + dx[i] > canvas.width-ballRadius || x[i]+ dx[i] < ballRadius) {
-            dx[i] = -dx[i];
-        }
-        if(y[i] + dy[i] > canvas.height-ballRadius || y[i] + dy[i] < ballRadius) {
-            dy[i] = -dy[i];
-        }
+            if (totalBalls.length < 10){
+                let ball = {
+                    "x": x[i],
+                    "y": y[i],
+                    "color": color[i],
+                    "ballRadius": ballRadius
+                };
+                totalBalls.push(ball);
+            }   
+            //initial position of balls to start following mouse//    
+            xx[i] = X[i] = canvas.width/2 ;
+            yy[i] = Y[i] = canvas.height/2 ;
+
+            //draw ball on canvase//
+            drawBall(i);
+
+            //set new position//
+            if(totalBalls[i].x + dx[i] > canvas.width-ballRadius || totalBalls[i].x + dx[i] < ballRadius) {
+                dx[i] = -dx[i];
+            }
+            if(totalBalls[i].y + dy[i] > canvas.height-ballRadius || totalBalls[i].y + dy[i] < ballRadius) {
+                dy[i] = -dy[i];
+            }
     
-        x[i] += dx[i];
-        y[i] += dy[i];
+            totalBalls[i].x += dx[i];
+            totalBalls[i].y += dy[i];
+        }   
     }
+    flagMouse = 0;
+    setTimeout(draw, 50);
 }
 
-//////call function after 50 miliseconds//
-setInterval(draw, 50);
-
+//canvas.addEventListener("mousemove", mouse, false);
+if (window.addEventListener) {
+  window.addEventListener("load", draw, false);
+  document.addEventListener("mousemove", mouse, false)
+} 
+else if (window.attachEvent) {
+  window.attachEvent("onload", draw);
+  document.attachEvent("onmousemove", mouse); 
+}
 
 </script>
 </body>
