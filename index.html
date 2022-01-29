@@ -27,37 +27,44 @@ var yTop = [canvas.height-30, canvas.height -50, canvas.height -100, canvas.heig
 var xyVelocity = [2, 4,2,5,7,5,9,3,6,2,-2, -5, -3, -4, -5, -6, -3, -2, -1, -7];
 /* var color = ['#00FFFF', '#006400', '#4B0082', '#C71585', '#E9967A',
                 '#7B68EE', '#191970','#FF0000', '#00FF7F', '#FFFF00']; */
-var total = 15;
-var totalBalls = [], 
-ymouse = 0,
-xmouse = 0,
-Y = [],
-X = [],
-xx = [],
-yy = [];
-flagMouse = 0;      
+var total = 5;
+var totalBalls = [];
+var ymouse = 0;
+var xmouse = 0;
+var Y = [];
+var X = [];
+var xx = [];
+var yy = [];  
+var xClick = 0;
+var yClick = 0;   
 //End variables declaration//
 
-function getColor(){
+
+function getColor() {
     return ("#" + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase()); 
 }
-function getLeft(){
+
+function getLeft() {
     return xLeft[Math.floor(Math.random() * xLeft.length)];
 }
-function getTop(){
+
+function getTop() {
     return yTop[Math.floor(Math.random() * yTop.length)];
 }
-function getVelocity(){
+
+function getVelocity() {
     return xyVelocity[Math.floor(Math.random() * xyVelocity.length)];
 }
-//function to keep balls inside the canvase//
+
+//check left and top to keep ball inside the canvase //
 function checkWalls(i) {
-  if (totalBalls[i].x <= 0 ){
+  if (totalBalls[i].x <= 0 ) {
     totalBalls[i].x = totalBalls[i].ballRadius;        
   } else if(totalBalls[i].x >= canvas.width){
     totalBalls[i].x = canvas.width - totalBalls[i].ballRadius;        
   }
-  if (totalBalls[i].y <= 0){
+
+  if (totalBalls[i].y <= 0) {
     totalBalls[i].y = totalBalls[i].ballRadius; 
   }else if(totalBalls[i].y >= canvas.height){
     totalBalls[i].y = canvas.height - totalBalls[i].ballRadius; 
@@ -67,7 +74,59 @@ function checkWalls(i) {
 function mouse(e){
     ymouse = e.clientY;
     xmouse = e.clientX;
-    flagMouse = 1;   
+    followMouse();
+}
+function mouseClick(e){
+    yClick = e.clientY;
+    xClick = e.clientX;
+    makeBall();
+}
+
+function makeBall() {
+    let xValue, yValue ;
+    if(xClick == 0 && yClick == 0){
+        xValue = getLeft();
+        yValue = getTop();
+    } else {
+        xValue = xClick;
+        yValue = yClick;
+        xClick = 0;
+        yClick = 0;
+    }
+
+    let ball = {
+        "x": xValue,
+        "y": yValue,
+        "color": getColor(),
+        "dx": getVelocity(),
+        "dy": getVelocity(),
+        "ballRadius": ballRadius
+    };
+    
+    totalBalls.push(ball);   //Adding new ball into array//
+
+    //initialize array using later for following mouse//    
+    xx[totalBalls.length] = X[totalBalls.length] = canvas.width/2 ;
+    yy[totalBalls.length] = Y[totalBalls.length] = canvas.height/2 ;
+}
+
+function followMouse() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // first drags second and we all follow the mouse
+    yy[0] = ymouse - 50;
+    xx[0] = xmouse - 50;
+    totalBalls[0].x = xx[0];
+    totalBalls[0].y = yy[0];
+
+    for (let i = totalBalls.length - 1; i > 0; --i) {
+         yy[i] = Y[i] += (yy[i - 1] - Y[i]) * 0.2;   //speed = 0.2//
+        xx[i] = X[i] += (xx[i - 1] - X[i]) * 0.2; 
+        //adding new positions//
+        totalBalls[i].x = xx[i] ;
+        totalBalls[i].y = yy[i] ;
+        drawBall(i);       
+    }  
+    drawBall[0];     
 }
 
 function drawBall(num) { 
@@ -82,44 +141,20 @@ function drawBall(num) {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (flagMouse == 1){       
-        // first drags second and we all follow the mouse
-        yy[0] = ymouse - 50;
-        xx[0] = xmouse - 50;
-        for (let i = totalBalls.length - 1; i > 0; --i) {
-            yy[i] = Y[i] += (yy[i - 1] - Y[i]) * 0.3;   //speed = 0.3//
-            xx[i] = X[i] += (xx[i - 1] - X[i]) * 0.3; 
+        if (totalBalls.length == 0) {
+            total = total;
+        }else{
+            total = totalBalls.length;
+        }
 
-            //adding new positions//
-            totalBalls[i].x = xx[i];
-            totalBalls[i].y = yy[i];
-            drawBall(i);
-        }        
-    }else {
         for (let i = 0; i < total; i++) {
             //total is 15 for now.//
-            if (totalBalls.length < total){
-                let ball = {
-                    "x": getLeft(),
-                    "y": getTop(),
-                    "color": getColor(),
-                    "dx": getVelocity(),
-                    "dy": getVelocity(),
-                    "ballRadius": ballRadius
-                };
-                //Adding new ball into array//
-                totalBalls.push(ball);
-              
-                //set initial position to ball to start following mouse//    
-                xx[i] = X[i] = canvas.width/2 ;
-                yy[i] = Y[i] = canvas.height/2 ;
-            }  
 
-            //draw ball on canvase//
-            drawBall(i);
+            if (totalBalls.length < total)  makeBall();   //add one ball into totalBalls array// 
+                
+            drawBall(i);      //draw ball on canvase//
 
-            //check new position is inside the canvase
-            checkWalls(i);    
+            checkWalls(i);    //check new position is inside the canvase//
 
             //set new directions//
             if((totalBalls[i].x + totalBalls[i].dx > canvas.width-ballRadius) || 
@@ -136,8 +171,7 @@ function draw() {
             totalBalls[i].y += totalBalls[i].dy;
             
         }   
-    }
-    flagMouse = 0;
+    ////
     setTimeout(draw, 50);
 }
 
@@ -145,10 +179,12 @@ function draw() {
 if (window.addEventListener) {
   window.addEventListener("load", draw, false);
   document.addEventListener("mousemove", mouse, false)
+  document.addEventListener("mousedown", mouseClick, false);
 } 
 else if (window.attachEvent) {
   window.attachEvent("onload", draw);
   document.attachEvent("onmousemove", mouse); 
+  document.addEventListener("onmousedown", mouseClick, false);
 }
 
 </script>
