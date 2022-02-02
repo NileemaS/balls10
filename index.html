@@ -9,35 +9,52 @@
     	canvas { background: #eee; display: block; margin: 0 auto; }
     </style>
 </head>
-<body>
-    <canvas id="myCanvas" width="800px" height="600px"></canvas>
-
+<body>   
+    <div>  
+        <h1 style="color: blue; text-align: center;">Bouncing Balls</h1>       
+        <p style="text-align: center; color: blueviolet;">Click to Add New Balls. <span style="margin-left: 30px;"></span> Total Balls: <code id="ballCounter" style="color:blue"></code> <span style="margin-left: 30px;"></span> Try Moving Mouse Around :)</p>         
+    </div>
+    <div>
+        <canvas id="myCanvas" width="800px" height="600px">  </canvas>
+    </div>
+</body>
 <script>
 
 //start variation declaration//
 var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
-var ballRadius = 10;
-
+const ballCounter = document.getElementById('ballCounter');
+//----variables used for PacMan-----//
+//var img = document.getElementById("PacMan");
+var focus = [];          // values 0 or 1 for array index for selecting pic from PacArray// 
+var direction = [];      // values are 0 (false) or 1(true)//
+var pos = [];
+var totPacMan = [];
+const pacArray = [
+    ['PacMan1.png', 'PacMan2.png'],
+    ['PacMan3.png', 'PacMan4.png']
+];
+//------variables used for Bouncing Balls-----//
 var xLeft = [canvas.width/2, canvas.width/4, canvas.width/6, canvas.width/8, canvas.width/10,
          canvas.width/5, canvas.width/12, canvas.width/15, canvas.width, canvas.width/20];
 var yTop = [canvas.height-30, canvas.height -50, canvas.height -100, canvas.height - 120, 
          canvas.height - 150, canvas.height -90, canvas.height -100, canvas.height-40,
          canvas.height - 80, canvas.height- 75];
 var xyVelocity = [2, 4,2,5,7,5,9,3,6,2,-2, -5, -3, -4, -5, -6, -3, -2, -1, -7];
-/* var color = ['#00FFFF', '#006400', '#4B0082', '#C71585', '#E9967A',
-                '#7B68EE', '#191970','#FF0000', '#00FF7F', '#FFFF00']; */
-var total = 10;
-var totalBalls = [];
+var cntDeletedBalls = 0;
+var ballRadius = 10;
+var total = 5;
+var xClick = 0;
+var yClick = 0;  
 var ymouse = 0;
 var xmouse = 0;
+var totalBalls = [];
 var Y = [];
 var X = [];
 var xx = [];
 var yy = [];  
-var xClick = 0;
-var yClick = 0;   
-//End variables declaration//
+ 
+//-----End variables declaration//
 
 
 function getColor() {
@@ -54,21 +71,6 @@ function getTop() {
 
 function getVelocity() {
     return xyVelocity[Math.floor(Math.random() * xyVelocity.length)];
-}
-
-//check left and top to keep ball inside the canvase //
-function checkWalls(i) {
-  if (totalBalls[i].x <= 0 ) {
-    totalBalls[i].x = totalBalls[i].ballRadius;        
-  } else if(totalBalls[i].x >= canvas.width){
-    totalBalls[i].x = canvas.width - totalBalls[i].ballRadius;        
-  }
-
-  if (totalBalls[i].y <= 0) {
-    totalBalls[i].y = totalBalls[i].ballRadius; 
-  }else if(totalBalls[i].y >= canvas.height){
-    totalBalls[i].y = canvas.height - totalBalls[i].ballRadius; 
-  }
 }
 
 function mouse(e){
@@ -132,61 +134,154 @@ function followMouse() {
 function drawBall(num) { 
     ctx.beginPath();
     ctx.arc(totalBalls[num].x, totalBalls[num].y, totalBalls[num].ballRadius, 0, Math.PI*2, false);
-    ctx.fillStyle = totalBalls[num].color;
+    ctx.fillStyle = totalBalls[num].color;    
     ctx.fill();
     ctx.closePath();
 }
 
-//This function sets new position to all balls//
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function makePacMan(){    
+    let newPacMan = new Image ();        
+        newPacMan.dx = 20;
+        newPacMan.dy = 100;
+        newPacMan.src =  "PacMan1.png";   
 
-        if (totalBalls.length == 0) {
-            total = total;
+    totPacMan.push(newPacMan);
+}
+
+function drawPacMan() {    
+    if (totPacMan.length == 0) {
+        makePacMan();
+        focus[0] = 0;
+        direction[0] = 0;
+        pos[0] = 0;
+    }
+    
+    for (let i = 0; i < totPacMan.length; i++) {
+        focus[i] = (focus[i] + 1) % 2;
+        //
+        if (direction[i] == 1 && totPacMan[i].dx <= 0) direction[i] = 0;
+
+        if (direction[i] == 0 && totPacMan[i].dx >= canvas.width - 50) {
+             direction[i] = 1;
+        }
+
+        totPacMan[i].src = pacArray[direction[i]][focus[i]];    
+
+        ctx.drawImage(totPacMan[i], totPacMan[i].dx, totPacMan[i].dy, 50, 50);        
+       
+        if (direction[i]) {
+            pos[i] -= 2; 
+            totPacMan[i].dx = pos[i] ;
+        }else{
+            pos[i] += 2  
+            totPacMan[i].dx = pos[i];          
+        }        
+    }  
+    eatBalls();               
+}
+
+function eatBalls(){
+    for (let i = 0; i < totPacMan.length; i++) {        
+        let pmX = totPacMan[i].dx;
+        let pmY = totPacMan[i].dy ;       
+        let pmXWidth = pmX + 50; // 50 is width of img//
+        let pmYHeight = pmY + 50;
+        
+        for (let j = 0; j < totalBalls.length; j++) {
+            let ballX =  totalBalls[j].x + 10;
+            let ballY =  totalBalls[j].y + 10; 
+
+            if (pmX - ballX > 20 || ballX - pmX > 50) {
+                continue;    //It means balls are far away//
+            }else if (pmY - ballY > 5 || ballY - pmY > 50) {
+                continue ;
+            }else {
+                if (direction[i]) {
+                    if (pmX - ballX < 5 || pmYHeight - ballY < 5) {
+                        totalBalls.splice(j, 1);
+                        cntDeletedBalls += 1 ;  
+                    }                  
+                }else {
+                    if (pmXWidth - ballX < 20 || pmY - ballY < 5) {     
+                        totalBalls.splice(j, 1);
+                        cntDeletedBalls += 1 ;
+                    }
+                    
+                }
+            }               
+        }  
+    }    
+}   
+    
+//check left and top to keep ball inside the canvase //
+function checkWalls(i) {
+  if (totalBalls[i].x <= 0 ) {
+    totalBalls[i].x = totalBalls[i].ballRadius;        
+  } else if(totalBalls[i].x >= canvas.width){
+    totalBalls[i].x = canvas.width - totalBalls[i].ballRadius;        
+  }
+
+  if (totalBalls[i].y <= 0) {
+    totalBalls[i].y = totalBalls[i].ballRadius; 
+  }else if(totalBalls[i].y >= canvas.height){
+    totalBalls[i].y = canvas.height - totalBalls[i].ballRadius; 
+  }
+}
+
+function setNewPosition(i) {
+    //set new directions//
+    if((totalBalls[i].x + totalBalls[i].dx > canvas.width-ballRadius) || 
+        (totalBalls[i].x + totalBalls[i].dx < ballRadius)) {
+        totalBalls[i].dx = -totalBalls[i].dx;
+    }
+    if((totalBalls[i].y + totalBalls[i].dy > canvas.height-ballRadius) || 
+        (totalBalls[i].y + totalBalls[i].dy < ballRadius)) {
+        totalBalls[i].dy = -totalBalls[i].dy;
+    }            
+            
+    //set new positions//
+    totalBalls[i].x += totalBalls[i].dx;
+    totalBalls[i].y += totalBalls[i].dy;
+} 
+
+//This is the main function to keep moving all balls//
+function draw() {
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);   
+
+        if (totalBalls.length == 0 || totalBalls.length < 5) {
+            total = total;  //initial value set to 5//
         }else{
             total = totalBalls.length;
         }
 
         for (let i = 0; i < total; i++) {
-            //total is 15 for now.//
 
             if (totalBalls.length < total)  makeBall();   //add one ball into totalBalls array// 
                 
-            drawBall(i);      //draw ball on canvase//
+            drawBall(i);      //draw ball on canvas//            
 
-            checkWalls(i);    //check new position is inside the canvase//
-
-            //set new directions//
-            if((totalBalls[i].x + totalBalls[i].dx > canvas.width-ballRadius) || 
-                (totalBalls[i].x + totalBalls[i].dx < ballRadius)) {
-                totalBalls[i].dx = -totalBalls[i].dx;
-            }
-            if((totalBalls[i].y + totalBalls[i].dy > canvas.height-ballRadius) || 
-                (totalBalls[i].y + totalBalls[i].dy < ballRadius)) {
-                totalBalls[i].dy = -totalBalls[i].dy;
-            }            
-            
-            //set new positions//
-            totalBalls[i].x += totalBalls[i].dx;
-            totalBalls[i].y += totalBalls[i].dy;
-            
-        }   
+            checkWalls(i);    //check new position is inside the canvas//       
+                                                           
+            setNewPosition(i); //check direction and set new position//                     
+        }  
     ////
-    setTimeout(draw, 50);
+    drawPacMan();  //PacMan
+    ballCounter.innerText = "  " + totalBalls.length ;
+    setTimeout(draw, 50);   
 }
 
 //canvas.addEventListener("mousemove", mouse, false);
-if (window.addEventListener) {
-  window.addEventListener("load", draw, false);
-  document.addEventListener("mousemove", mouse, false)
+if (window.addEventListener) { 
+  window.addEventListener("load", draw, false); 
+  document.addEventListener("mousemove", mouse, false);
   document.addEventListener("mousedown", mouseClick, false);
 } 
 else if (window.attachEvent) {
-  window.attachEvent("onload", draw);
+  window.attachEvent("onload", draw, false);
   document.attachEvent("onmousemove", mouse); 
   document.addEventListener("onmousedown", mouseClick, false);
 }
 
 </script>
-</body>
 </html>
